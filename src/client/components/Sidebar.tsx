@@ -1,4 +1,9 @@
-import { Link, useLocation, useMatchRoute } from "@tanstack/react-router";
+import {
+  Link,
+  useLocation,
+  useMatchRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import type { LinkOptions } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ComponentType } from "react";
@@ -8,7 +13,9 @@ import {
   Check,
   CircleHelp,
   CreditCard,
+  LayoutGrid,
   LogOut,
+  MessageCircle,
   Settings,
   User,
 } from "lucide-react";
@@ -42,6 +49,7 @@ import {
   SidebarMenuSkeleton,
   useSidebar,
 } from "@/client/components/ui/sidebar";
+import { Tabs, TabsList, TabsTrigger } from "@/client/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,9 +140,10 @@ export function Sidebar({
       ? getProjectNavGroups(projectId ?? "")
       : [connectNavGroup];
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { setOpenMobile } = useSidebar();
-  // SAM is hidden from navigation: the chat route is only reachable by URL,
-  // and while it is open its chat list takes the nav's place.
+  // Both views belong to the same project. Derive the selected tab from the
+  // route so deep links and browser history stay in sync with the sidebar.
   const onSamRoute = pathname.includes("/sam");
 
   return (
@@ -152,6 +161,43 @@ export function Sidebar({
           ready={ready}
           onCloseDrawer={() => setOpenMobile(false)}
         />
+        {projectId !== null || navPlaceholder ? (
+          <Tabs
+            value={onSamRoute ? "chat" : "browse"}
+            onValueChange={(value) => {
+              if (projectId === null) return;
+              if (value === "chat" && !onSamRoute) {
+                void navigate({
+                  to: "/p/$projectId/sam",
+                  params: { projectId },
+                  search: {},
+                });
+              } else if (value === "browse" && onSamRoute) {
+                void navigate({
+                  to: "/p/$projectId",
+                  params: { projectId },
+                });
+              }
+              setOpenMobile(false);
+            }}
+            className="pt-2"
+          >
+            <TabsList
+              variant="line"
+              className="w-full"
+              aria-label="Project views"
+            >
+              <TabsTrigger value="browse" disabled={projectId === null}>
+                <LayoutGrid className="size-4" />
+                Browse
+              </TabsTrigger>
+              <TabsTrigger value="chat" disabled={projectId === null}>
+                <MessageCircle className="size-4" />
+                Chat
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : null}
       </SidebarHeader>
 
       <SidebarContent>
